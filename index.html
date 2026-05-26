@@ -1,0 +1,1088 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Extractor Facturas · Energía</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --verde: #00E87A;
+    --verde-oscuro: #00A855;
+    --negro: #0A0A0A;
+    --gris-oscuro: #111111;
+    --gris-medio: #1C1C1C;
+    --gris-borde: #2A2A2A;
+    --gris-texto: #888;
+    --blanco: #F5F5F0;
+    --amarillo: #FFE03D;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--negro);
+    color: var(--blanco);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── FONDO GRID ── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,232,122,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,232,122,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── NAV ── */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 48px;
+    border-bottom: 1px solid var(--gris-borde);
+    background: rgba(10,10,10,0.85);
+    backdrop-filter: blur(12px);
+  }
+
+  .nav-logo {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 18px;
+    letter-spacing: -0.5px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .nav-logo .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--verde);
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.8); }
+  }
+
+  .nav-badge {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--verde);
+    border: 1px solid var(--verde);
+    padding: 4px 10px;
+    border-radius: 20px;
+    opacity: 0.8;
+  }
+
+  /* ── HERO ── */
+  .hero {
+    position: relative;
+    z-index: 1;
+    padding: 160px 48px 80px;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .hero-tag {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--verde);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .hero-tag::before {
+    content: '';
+    width: 32px; height: 1px;
+    background: var(--verde);
+  }
+
+  h1 {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: clamp(48px, 7vw, 88px);
+    line-height: 0.95;
+    letter-spacing: -3px;
+    margin-bottom: 32px;
+  }
+
+  h1 .highlight {
+    color: var(--verde);
+    position: relative;
+    display: inline-block;
+  }
+
+  h1 .highlight::after {
+    content: '';
+    position: absolute;
+    bottom: 4px; left: 0; right: 0;
+    height: 3px;
+    background: var(--verde);
+    opacity: 0.3;
+  }
+
+  .hero-desc {
+    font-size: 18px;
+    color: var(--gris-texto);
+    max-width: 520px;
+    line-height: 1.7;
+    font-weight: 300;
+  }
+
+  /* ── STATS ── */
+  .stats-bar {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    gap: 0;
+    border-top: 1px solid var(--gris-borde);
+    border-bottom: 1px solid var(--gris-borde);
+    margin-bottom: 80px;
+  }
+
+  .stat {
+    flex: 1;
+    padding: 28px 48px;
+    border-right: 1px solid var(--gris-borde);
+  }
+
+  .stat:last-child { border-right: none; }
+
+  .stat-num {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 36px;
+    color: var(--verde);
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+
+  .stat-label {
+    font-size: 13px;
+    color: var(--gris-texto);
+    font-weight: 300;
+  }
+
+  /* ── MAIN LAYOUT ── */
+  .main {
+    position: relative;
+    z-index: 1;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 48px 120px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    align-items: start;
+  }
+
+  /* ── PANEL IZQUIERDO: UPLOAD ── */
+  .panel {
+    background: var(--gris-medio);
+    border: 1px solid var(--gris-borde);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .panel-header {
+    padding: 20px 28px;
+    border-bottom: 1px solid var(--gris-borde);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .panel-title {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--gris-texto);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  .panel-num {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--gris-borde);
+  }
+
+  /* ── DROP ZONE ── */
+  .drop-zone {
+    margin: 28px;
+    border: 1.5px dashed var(--gris-borde);
+    border-radius: 2px;
+    padding: 60px 40px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .drop-zone::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at center, rgba(0,232,122,0.03) 0%, transparent 70%);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .drop-zone:hover, .drop-zone.drag-over {
+    border-color: var(--verde);
+    background: rgba(0,232,122,0.02);
+  }
+
+  .drop-zone:hover::before, .drop-zone.drag-over::before {
+    opacity: 1;
+  }
+
+  .drop-icon {
+    width: 56px; height: 56px;
+    margin: 0 auto 20px;
+    border: 1.5px solid var(--gris-borde);
+    border-radius: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: border-color 0.2s;
+  }
+
+  .drop-zone:hover .drop-icon { border-color: var(--verde); }
+
+  .drop-icon svg { width: 24px; height: 24px; stroke: var(--gris-texto); transition: stroke 0.2s; }
+  .drop-zone:hover .drop-icon svg { stroke: var(--verde); }
+
+  .drop-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 600;
+    font-size: 16px;
+    margin-bottom: 8px;
+  }
+
+  .drop-sub {
+    font-size: 13px;
+    color: var(--gris-texto);
+    font-weight: 300;
+  }
+
+  .drop-types {
+    margin-top: 20px;
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+  }
+
+  .type-badge {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    padding: 4px 10px;
+    border: 1px solid var(--gris-borde);
+    border-radius: 20px;
+    color: var(--gris-texto);
+  }
+
+  #file-input { display: none; }
+
+  /* ── LISTA DE ARCHIVOS ── */
+  .files-list {
+    margin: 0 28px 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .file-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background: var(--negro);
+    border: 1px solid var(--gris-borde);
+    border-radius: 2px;
+    animation: slideIn 0.2s ease;
+  }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .file-icon {
+    width: 32px; height: 32px;
+    background: rgba(0,232,122,0.08);
+    border: 1px solid rgba(0,232,122,0.2);
+    border-radius: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .file-icon svg { width: 14px; height: 14px; stroke: var(--verde); }
+
+  .file-info { flex: 1; min-width: 0; }
+
+  .file-name {
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .file-size {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--gris-texto);
+    margin-top: 2px;
+  }
+
+  .file-status {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--gris-borde);
+    flex-shrink: 0;
+  }
+
+  .file-status.processing {
+    background: var(--amarillo);
+    animation: blink 0.8s infinite;
+  }
+
+  .file-status.done { background: var(--verde); }
+  .file-status.error { background: #FF4444; }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  .file-remove {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px;
+    color: var(--gris-texto);
+    transition: color 0.2s;
+    line-height: 0;
+  }
+
+  .file-remove:hover { color: #FF4444; }
+  .file-remove svg { width: 14px; height: 14px; stroke: currentColor; }
+
+  /* ── BTN PROCESAR ── */
+  .btn-procesar {
+    margin: 0 28px 28px;
+    width: calc(100% - 56px);
+    padding: 16px;
+    background: var(--verde);
+    color: var(--negro);
+    border: none;
+    border-radius: 2px;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+  }
+
+  .btn-procesar:hover:not(:disabled) {
+    background: #00FF87;
+    transform: translateY(-1px);
+  }
+
+  .btn-procesar:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+
+  .btn-procesar .spinner {
+    width: 16px; height: 16px;
+    border: 2px solid rgba(0,0,0,0.3);
+    border-top-color: var(--negro);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    display: none;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── PANEL DERECHO: RESULTADOS ── */
+  .results-empty {
+    padding: 80px 28px;
+    text-align: center;
+  }
+
+  .results-empty .empty-icon {
+    width: 64px; height: 64px;
+    margin: 0 auto 20px;
+    border: 1.5px dashed var(--gris-borde);
+    border-radius: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .results-empty .empty-icon svg { width: 28px; height: 28px; stroke: var(--gris-borde); }
+
+  .results-empty p {
+    font-size: 14px;
+    color: var(--gris-texto);
+    font-weight: 300;
+  }
+
+  /* ── TARJETA RESULTADO ── */
+  .result-card {
+    margin: 28px;
+    margin-bottom: 0;
+    border: 1px solid var(--gris-borde);
+    border-radius: 2px;
+    overflow: hidden;
+    animation: slideIn 0.3s ease;
+  }
+
+  .result-card:last-child { margin-bottom: 28px; }
+
+  .result-card-header {
+    padding: 14px 16px;
+    background: var(--negro);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-bottom: 1px solid var(--gris-borde);
+  }
+
+  .result-card-name {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .result-ok {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--verde);
+    background: rgba(0,232,122,0.08);
+    border: 1px solid rgba(0,232,122,0.2);
+    padding: 3px 8px;
+    border-radius: 20px;
+  }
+
+  .result-error {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: #FF4444;
+    background: rgba(255,68,68,0.08);
+    border: 1px solid rgba(255,68,68,0.2);
+    padding: 3px 8px;
+    border-radius: 20px;
+  }
+
+  .result-fields {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .result-field {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--gris-borde);
+    border-right: 1px solid var(--gris-borde);
+  }
+
+  .result-field:nth-child(even) { border-right: none; }
+  .result-field:nth-last-child(-n+2) { border-bottom: none; }
+
+  .result-field-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--gris-texto);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  .result-field-value {
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.4;
+  }
+
+  .result-field-value.null-val {
+    color: var(--gris-borde);
+    font-style: italic;
+    font-size: 12px;
+  }
+
+  .result-field-value.kwh {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 20px;
+    color: var(--verde);
+  }
+
+  .result-field-value .unit {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--gris-texto);
+    font-weight: 400;
+  }
+
+  /* ── BTN EXPORTAR ── */
+  .export-bar {
+    position: relative;
+    z-index: 1;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 48px 80px;
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+  }
+
+  .btn-export {
+    padding: 14px 28px;
+    background: transparent;
+    color: var(--blanco);
+    border: 1px solid var(--gris-borde);
+    border-radius: 2px;
+    font-family: 'Syne', sans-serif;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .btn-export:hover {
+    border-color: var(--verde);
+    color: var(--verde);
+  }
+
+  .btn-export svg { width: 16px; height: 16px; stroke: currentColor; }
+
+  .btn-export.primary {
+    background: var(--negro);
+    border-color: var(--verde);
+    color: var(--verde);
+  }
+
+  .btn-export.primary:hover {
+    background: var(--verde);
+    color: var(--negro);
+  }
+
+  /* ── PROGRESS BAR ── */
+  .progress-bar {
+    height: 2px;
+    background: var(--gris-borde);
+    margin: 0 28px 28px;
+    border-radius: 1px;
+    overflow: hidden;
+    display: none;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: var(--verde);
+    border-radius: 1px;
+    transition: width 0.4s ease;
+    width: 0%;
+  }
+
+  /* ── FOOTER ── */
+  footer {
+    position: relative;
+    z-index: 1;
+    border-top: 1px solid var(--gris-borde);
+    padding: 28px 48px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .footer-text {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--gris-borde);
+  }
+
+  .footer-phase {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--verde);
+    opacity: 0.6;
+  }
+
+  /* ── TOAST ── */
+  .toast {
+    position: fixed;
+    bottom: 32px;
+    right: 32px;
+    z-index: 999;
+    padding: 14px 20px;
+    background: var(--gris-medio);
+    border: 1px solid var(--gris-borde);
+    border-radius: 2px;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transform: translateY(80px);
+    opacity: 0;
+    transition: all 0.3s ease;
+    max-width: 320px;
+  }
+
+  .toast.show {
+    transform: translateY(0);
+    opacity: 1;
+  }
+
+  .toast.success { border-color: var(--verde); }
+  .toast.error { border-color: #FF4444; }
+
+  .toast-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .toast.success .toast-dot { background: var(--verde); }
+  .toast.error .toast-dot { background: #FF4444; }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 900px) {
+    nav { padding: 16px 24px; }
+    .hero { padding: 120px 24px 60px; }
+    .stats-bar { flex-wrap: wrap; }
+    .stat { min-width: 50%; }
+    .main { grid-template-columns: 1fr; padding: 0 24px 80px; }
+    .export-bar { padding: 0 24px 60px; }
+    footer { padding: 20px 24px; flex-direction: column; gap: 8px; text-align: center; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">
+    <div class="dot"></div>
+    EPM Extractor
+  </div>
+  <span class="nav-badge">FASE 1 · v1.0</span>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-tag">Visión por Computador · OCR · Extracción automática</div>
+  <h1>Extrae datos<br>de <span class="highlight">facturas</span><br>al instante</h1>
+  <p class="hero-desc">
+    Sube tus facturas de energía — EPM, CELSIA, QI Energy —
+    y obtén automáticamente los 5 campos clave para tu proceso
+    de formulación de proyectos.
+  </p>
+</section>
+
+<!-- STATS -->
+<div class="stats-bar">
+  <div class="stat">
+    <div class="stat-num">5</div>
+    <div class="stat-label">campos extraídos</div>
+  </div>
+  <div class="stat">
+    <div class="stat-num">3+</div>
+    <div class="stat-label">comercializadores</div>
+  </div>
+  <div class="stat">
+    <div class="stat-num">PDF</div>
+    <div class="stat-label">y fotos JPG/PNG</div>
+  </div>
+  <div class="stat">
+    <div class="stat-num">XLS</div>
+    <div class="stat-label">exportación directa</div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- PANEL IZQUIERDO -->
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-title">Cargar facturas</span>
+      <span class="panel-num" id="file-count">0 archivos</span>
+    </div>
+
+    <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()">
+      <div class="drop-icon">
+        <svg fill="none" viewBox="0 0 24 24" stroke-width="1.5">
+          <path stroke-linecap="round" stroke-linejoin="round"
+            d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/>
+        </svg>
+      </div>
+      <div class="drop-title">Arrastra tus facturas aquí</div>
+      <div class="drop-sub">o haz clic para seleccionar archivos</div>
+      <div class="drop-types">
+        <span class="type-badge">PDF</span>
+        <span class="type-badge">JPG</span>
+        <span class="type-badge">PNG</span>
+      </div>
+    </div>
+
+    <input type="file" id="file-input" multiple accept=".pdf,.jpg,.jpeg,.png">
+
+    <div class="files-list" id="files-list"></div>
+
+    <div class="progress-bar" id="progress-bar">
+      <div class="progress-fill" id="progress-fill"></div>
+    </div>
+
+    <button class="btn-procesar" id="btn-procesar" disabled onclick="procesarFacturas()">
+      <span class="spinner" id="spinner"></span>
+      <span id="btn-text">Procesar facturas</span>
+    </button>
+  </div>
+
+  <!-- PANEL DERECHO -->
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-title">Resultados</span>
+      <span class="panel-num" id="results-count">—</span>
+    </div>
+
+    <div class="results-empty" id="results-empty">
+      <div class="empty-icon">
+        <svg fill="none" viewBox="0 0 24 24" stroke-width="1">
+          <path stroke-linecap="round" stroke-linejoin="round"
+            d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/>
+        </svg>
+      </div>
+      <p>Los datos extraídos aparecerán aquí</p>
+    </div>
+
+    <div id="results-container"></div>
+  </div>
+</div>
+
+<!-- EXPORT BAR -->
+<div class="export-bar" id="export-bar" style="display:none;">
+  <button class="btn-export" onclick="exportarJSON()">
+    <svg fill="none" viewBox="0 0 24 24" stroke-width="1.5">
+      <path stroke-linecap="round" stroke-linejoin="round"
+        d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5"/>
+    </svg>
+    Exportar JSON
+  </button>
+  <button class="btn-export primary" onclick="exportarCSV()">
+    <svg fill="none" viewBox="0 0 24 24" stroke-width="1.5">
+      <path stroke-linecap="round" stroke-linejoin="round"
+        d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/>
+    </svg>
+    Descargar Excel (CSV)
+  </button>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <span class="footer-text">© 2026 · Extractor Facturas Energía Colombia</span>
+  <span class="footer-phase">FASE 1 COMPLETA · Siguiente: Interfaz web conectada al backend</span>
+</footer>
+
+<!-- TOAST -->
+<div class="toast" id="toast">
+  <div class="toast-dot"></div>
+  <span id="toast-msg"></span>
+</div>
+
+<script>
+  // ── Estado de la app ──
+  const state = {
+    files: [],
+    results: [],
+    processing: false
+  };
+
+  // ── Drag & Drop ──
+  const dropZone = document.getElementById('drop-zone');
+
+  dropZone.addEventListener('dragover', e => {
+    e.preventDefault();
+    dropZone.classList.add('drag-over');
+  });
+
+  dropZone.addEventListener('dragleave', () => {
+    dropZone.classList.remove('drag-over');
+  });
+
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropZone.classList.remove('drag-over');
+    const files = Array.from(e.dataTransfer.files).filter(validarArchivo);
+    agregarArchivos(files);
+  });
+
+  document.getElementById('file-input').addEventListener('change', e => {
+    const files = Array.from(e.target.files).filter(validarArchivo);
+    agregarArchivos(files);
+    e.target.value = '';
+  });
+
+  function validarArchivo(f) {
+    const ext = f.name.split('.').pop().toLowerCase();
+    return ['pdf','jpg','jpeg','png'].includes(ext);
+  }
+
+  function agregarArchivos(nuevos) {
+    nuevos.forEach(f => {
+      if (!state.files.find(x => x.file.name === f.name)) {
+        state.files.push({ file: f, status: 'pending', id: Date.now() + Math.random() });
+      }
+    });
+    renderFiles();
+    document.getElementById('btn-procesar').disabled = state.files.length === 0;
+  }
+
+  function quitarArchivo(nombre) {
+    state.files = state.files.filter(f => f.file.name !== nombre);
+    renderFiles();
+    document.getElementById('btn-procesar').disabled = state.files.length === 0;
+  }
+
+  function renderFiles() {
+    const lista = document.getElementById('files-list');
+    const count = document.getElementById('file-count');
+    count.textContent = `${state.files.length} archivo${state.files.length !== 1 ? 's' : ''}`;
+
+    lista.innerHTML = state.files.map(item => `
+      <div class="file-item">
+        <div class="file-icon">
+          <svg fill="none" viewBox="0 0 24 24" stroke-width="1.5">
+            <path stroke-linecap="round" stroke-linejoin="round"
+              d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/>
+          </svg>
+        </div>
+        <div class="file-info">
+          <div class="file-name">${item.file.name}</div>
+          <div class="file-size">${formatSize(item.file.size)}</div>
+        </div>
+        <div class="file-status ${item.status === 'processing' ? 'processing' : item.status === 'done' ? 'done' : item.status === 'error' ? 'error' : ''}"></div>
+        ${item.status === 'pending' ? `
+          <button class="file-remove" onclick="quitarArchivo('${item.file.name}')">
+            <svg fill="none" viewBox="0 0 24 24" stroke-width="1.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>` : ''}
+      </div>
+    `).join('');
+  }
+
+  function formatSize(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  }
+
+  // ── Simulación de procesamiento ──
+  // (En producción esto llamará al backend FastAPI)
+  async function procesarFacturas() {
+    if (state.processing || state.files.length === 0) return;
+    state.processing = true;
+
+    const btn = document.getElementById('btn-procesar');
+    const spinner = document.getElementById('spinner');
+    const btnText = document.getElementById('btn-text');
+    const progressBar = document.getElementById('progress-bar');
+    const progressFill = document.getElementById('progress-fill');
+
+    btn.disabled = true;
+    spinner.style.display = 'block';
+    btnText.textContent = 'Procesando...';
+    progressBar.style.display = 'block';
+
+    document.getElementById('results-empty').style.display = 'none';
+    document.getElementById('results-container').innerHTML = '';
+    state.results = [];
+
+    for (let i = 0; i < state.files.length; i++) {
+      const item = state.files[i];
+      item.status = 'processing';
+      renderFiles();
+
+      const pct = Math.round((i / state.files.length) * 100);
+      progressFill.style.width = pct + '%';
+
+      // ── Aquí se conectará el backend FastAPI ──
+      // const formData = new FormData();
+      // formData.append('file', item.file);
+      // const res = await fetch('http://localhost:8000/extraer', { method: 'POST', body: formData });
+      // const data = await res.json();
+
+      // Por ahora simulamos con datos de ejemplo
+      await new Promise(r => setTimeout(r, 1200));
+      const data = simularExtraccion(item.file.name);
+
+      item.status = data.error ? 'error' : 'done';
+      state.results.push({ archivo: item.file.name, ...data });
+      renderFiles();
+      renderResultado({ archivo: item.file.name, ...data });
+
+      document.getElementById('results-count').textContent =
+        `${i + 1}/${state.files.length} procesadas`;
+    }
+
+    progressFill.style.width = '100%';
+    setTimeout(() => { progressBar.style.display = 'none'; }, 600);
+
+    btn.disabled = false;
+    spinner.style.display = 'none';
+    btnText.textContent = 'Procesar de nuevo';
+    state.processing = false;
+
+    document.getElementById('export-bar').style.display = 'flex';
+    mostrarToast('¡Extracción completada!', 'success');
+  }
+
+  function simularExtraccion(nombre) {
+    // Datos de ejemplo para la demo visual
+    const demos = {
+      'LaMariana.pdf': {
+        consumo_promedio_kwh: 1026,
+        estrato_socioeconomico: 4,
+        referencia_transformador: '206870',
+        direccion: 'Vereda El Carmin, Rionegro - Antioquia',
+        numero_contrato: '10206177'
+      }
+    };
+    if (demos[nombre]) return demos[nombre];
+    return {
+      consumo_promedio_kwh: Math.floor(Math.random() * 2000) + 200,
+      estrato_socioeconomico: Math.random() > 0.5 ? Math.floor(Math.random() * 4) + 1 : null,
+      referencia_transformador: Math.random() > 0.3 ? String(Math.floor(Math.random() * 900000) + 100000) : null,
+      direccion: 'Dirección del predio, Municipio - Antioquia',
+      numero_contrato: String(Math.floor(Math.random() * 90000000) + 10000000)
+    };
+  }
+
+  function renderResultado(data) {
+    const container = document.getElementById('results-container');
+    const isError = !!data.error;
+
+    const card = document.createElement('div');
+    card.className = 'result-card';
+    card.innerHTML = `
+      <div class="result-card-header">
+        <span class="result-card-name">${data.archivo}</span>
+        ${isError
+          ? `<span class="result-error">ERROR</span>`
+          : `<span class="result-ok">✓ OK</span>`}
+      </div>
+      ${isError ? `<div style="padding:20px 16px;font-size:13px;color:#FF4444;">${data.error}</div>` : `
+      <div class="result-fields">
+        <div class="result-field">
+          <div class="result-field-label">Consumo promedio</div>
+          <div class="result-field-value kwh">
+            ${data.consumo_promedio_kwh ?? '<span style="color:var(--gris-borde);font-size:13px;font-style:italic;">—</span>'}
+            ${data.consumo_promedio_kwh ? '<span class="unit"> kWh</span>' : ''}
+          </div>
+        </div>
+        <div class="result-field">
+          <div class="result-field-label">Estrato</div>
+          <div class="result-field-value ${!data.estrato_socioeconomico ? 'null-val' : ''}">
+            ${data.estrato_socioeconomico ? `Estrato ${data.estrato_socioeconomico}` : 'No aplica'}
+          </div>
+        </div>
+        <div class="result-field">
+          <div class="result-field-label">Ref. Transformador</div>
+          <div class="result-field-value ${!data.referencia_transformador ? 'null-val' : ''}">
+            ${data.referencia_transformador ?? '—'}
+          </div>
+        </div>
+        <div class="result-field">
+          <div class="result-field-label">N° Contrato</div>
+          <div class="result-field-value">${data.numero_contrato ?? '—'}</div>
+        </div>
+        <div class="result-field" style="grid-column: 1/-1; border-right:none;">
+          <div class="result-field-label">Dirección</div>
+          <div class="result-field-value">${data.direccion ?? '—'}</div>
+        </div>
+      </div>`}
+    `;
+    container.appendChild(card);
+  }
+
+  // ── Exportar ──
+  function exportarCSV() {
+    if (state.results.length === 0) return;
+    const headers = ['Archivo','Consumo promedio (kWh)','Estrato','Ref. Transformador','Dirección','Número de contrato'];
+    const rows = state.results.map(r => [
+      r.archivo,
+      r.consumo_promedio_kwh ?? '',
+      r.estrato_socioeconomico ?? '',
+      r.referencia_transformador ?? '',
+      r.direccion ?? '',
+      r.numero_contrato ?? ''
+    ]);
+    const csv = [headers, ...rows].map(r => r.map(v => `"${v}"`).join(',')).join('\n');
+    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `facturas_epm_${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+    mostrarToast('CSV descargado', 'success');
+  }
+
+  function exportarJSON() {
+    if (state.results.length === 0) return;
+    const blob = new Blob([JSON.stringify(state.results, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `facturas_epm_${new Date().toISOString().slice(0,10)}.json`;
+    a.click();
+    mostrarToast('JSON descargado', 'success');
+  }
+
+  // ── Toast ──
+  function mostrarToast(msg, tipo = 'success') {
+    const toast = document.getElementById('toast');
+    const toastMsg = document.getElementById('toast-msg');
+    toast.className = `toast ${tipo}`;
+    toastMsg.textContent = msg;
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 3000);
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,20 @@
+﻿# Entorno virtual
+.venv/
+
+# Cache de Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Variables de entorno (claves privadas)
+.env
+
+# Poppler (binario externo)
+poppler-26.02.0/
+
+# Facturas (datos privados de clientes)
+Facturas/
+
+# Archivos del sistema
+.DS_Store
+Thumbs.db
