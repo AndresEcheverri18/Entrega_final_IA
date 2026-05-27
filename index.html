@@ -3,1086 +3,671 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Extractor Facturas · Energía</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<title>SolarData · Extractor de Facturas</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,600;0,700;0,900;1,400&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-  :root {
-    --verde: #00E87A;
-    --verde-oscuro: #00A855;
-    --negro: #0A0A0A;
-    --gris-oscuro: #111111;
-    --gris-medio: #1C1C1C;
-    --gris-borde: #2A2A2A;
-    --gris-texto: #888;
-    --blanco: #F5F5F0;
-    --amarillo: #FFE03D;
-  }
-
-  html { scroll-behavior: smooth; }
-
-  body {
-    background: var(--negro);
-    color: var(--blanco);
-    font-family: 'DM Sans', sans-serif;
-    min-height: 100vh;
-    overflow-x: hidden;
-  }
-
-  /* ── FONDO GRID ── */
-  body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background-image:
-      linear-gradient(rgba(0,232,122,0.03) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(0,232,122,0.03) 1px, transparent 1px);
-    background-size: 40px 40px;
-    pointer-events: none;
-    z-index: 0;
-  }
-
-  /* ── NAV ── */
-  nav {
-    position: fixed;
-    top: 0; left: 0; right: 0;
-    z-index: 100;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 20px 48px;
-    border-bottom: 1px solid var(--gris-borde);
-    background: rgba(10,10,10,0.85);
-    backdrop-filter: blur(12px);
-  }
-
-  .nav-logo {
-    font-family: 'Syne', sans-serif;
-    font-weight: 800;
-    font-size: 18px;
-    letter-spacing: -0.5px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-
-  .nav-logo .dot {
-    width: 8px; height: 8px;
-    border-radius: 50%;
-    background: var(--verde);
-    animation: pulse 2s infinite;
-  }
-
-  @keyframes pulse {
-    0%, 100% { opacity: 1; transform: scale(1); }
-    50% { opacity: 0.5; transform: scale(0.8); }
-  }
-
-  .nav-badge {
-    font-family: 'DM Mono', monospace;
-    font-size: 11px;
-    color: var(--verde);
-    border: 1px solid var(--verde);
-    padding: 4px 10px;
-    border-radius: 20px;
-    opacity: 0.8;
-  }
-
-  /* ── HERO ── */
-  .hero {
-    position: relative;
-    z-index: 1;
-    padding: 160px 48px 80px;
-    max-width: 1200px;
-    margin: 0 auto;
-  }
-
-  .hero-tag {
-    font-family: 'DM Mono', monospace;
-    font-size: 11px;
-    color: var(--verde);
-    letter-spacing: 3px;
-    text-transform: uppercase;
-    margin-bottom: 24px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
-
-  .hero-tag::before {
-    content: '';
-    width: 32px; height: 1px;
-    background: var(--verde);
-  }
-
-  h1 {
-    font-family: 'Syne', sans-serif;
-    font-weight: 800;
-    font-size: clamp(48px, 7vw, 88px);
-    line-height: 0.95;
-    letter-spacing: -3px;
-    margin-bottom: 32px;
-  }
-
-  h1 .highlight {
-    color: var(--verde);
-    position: relative;
-    display: inline-block;
-  }
-
-  h1 .highlight::after {
-    content: '';
-    position: absolute;
-    bottom: 4px; left: 0; right: 0;
-    height: 3px;
-    background: var(--verde);
-    opacity: 0.3;
-  }
-
-  .hero-desc {
-    font-size: 18px;
-    color: var(--gris-texto);
-    max-width: 520px;
-    line-height: 1.7;
-    font-weight: 300;
-  }
-
-  /* ── STATS ── */
-  .stats-bar {
-    position: relative;
-    z-index: 1;
-    display: flex;
-    gap: 0;
-    border-top: 1px solid var(--gris-borde);
-    border-bottom: 1px solid var(--gris-borde);
-    margin-bottom: 80px;
-  }
-
-  .stat {
-    flex: 1;
-    padding: 28px 48px;
-    border-right: 1px solid var(--gris-borde);
-  }
-
-  .stat:last-child { border-right: none; }
-
-  .stat-num {
-    font-family: 'Syne', sans-serif;
-    font-weight: 700;
-    font-size: 36px;
-    color: var(--verde);
-    line-height: 1;
-    margin-bottom: 6px;
-  }
-
-  .stat-label {
-    font-size: 13px;
-    color: var(--gris-texto);
-    font-weight: 300;
-  }
-
-  /* ── MAIN LAYOUT ── */
-  .main {
-    position: relative;
-    z-index: 1;
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 0 48px 120px;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 24px;
-    align-items: start;
-  }
-
-  /* ── PANEL IZQUIERDO: UPLOAD ── */
-  .panel {
-    background: var(--gris-medio);
-    border: 1px solid var(--gris-borde);
-    border-radius: 2px;
-    overflow: hidden;
-  }
-
-  .panel-header {
-    padding: 20px 28px;
-    border-bottom: 1px solid var(--gris-borde);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-
-  .panel-title {
-    font-family: 'DM Mono', monospace;
-    font-size: 12px;
-    color: var(--gris-texto);
-    letter-spacing: 2px;
-    text-transform: uppercase;
-  }
-
-  .panel-num {
-    font-family: 'DM Mono', monospace;
-    font-size: 11px;
-    color: var(--gris-borde);
-  }
-
-  /* ── DROP ZONE ── */
-  .drop-zone {
-    margin: 28px;
-    border: 1.5px dashed var(--gris-borde);
-    border-radius: 2px;
-    padding: 60px 40px;
-    text-align: center;
-    cursor: pointer;
-    transition: all 0.2s;
-    position: relative;
-    overflow: hidden;
-  }
-
-  .drop-zone::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: radial-gradient(circle at center, rgba(0,232,122,0.03) 0%, transparent 70%);
-    opacity: 0;
-    transition: opacity 0.3s;
-  }
-
-  .drop-zone:hover, .drop-zone.drag-over {
-    border-color: var(--verde);
-    background: rgba(0,232,122,0.02);
-  }
-
-  .drop-zone:hover::before, .drop-zone.drag-over::before {
-    opacity: 1;
-  }
-
-  .drop-icon {
-    width: 56px; height: 56px;
-    margin: 0 auto 20px;
-    border: 1.5px solid var(--gris-borde);
-    border-radius: 2px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: border-color 0.2s;
-  }
-
-  .drop-zone:hover .drop-icon { border-color: var(--verde); }
-
-  .drop-icon svg { width: 24px; height: 24px; stroke: var(--gris-texto); transition: stroke 0.2s; }
-  .drop-zone:hover .drop-icon svg { stroke: var(--verde); }
-
-  .drop-title {
-    font-family: 'Syne', sans-serif;
-    font-weight: 600;
-    font-size: 16px;
-    margin-bottom: 8px;
-  }
-
-  .drop-sub {
-    font-size: 13px;
-    color: var(--gris-texto);
-    font-weight: 300;
-  }
-
-  .drop-types {
-    margin-top: 20px;
-    display: flex;
-    gap: 8px;
-    justify-content: center;
-  }
-
-  .type-badge {
-    font-family: 'DM Mono', monospace;
-    font-size: 10px;
-    padding: 4px 10px;
-    border: 1px solid var(--gris-borde);
-    border-radius: 20px;
-    color: var(--gris-texto);
-  }
-
-  #file-input { display: none; }
-
-  /* ── LISTA DE ARCHIVOS ── */
-  .files-list {
-    margin: 0 28px 28px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-
-  .file-item {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 12px 16px;
-    background: var(--negro);
-    border: 1px solid var(--gris-borde);
-    border-radius: 2px;
-    animation: slideIn 0.2s ease;
-  }
-
-  @keyframes slideIn {
-    from { opacity: 0; transform: translateY(-8px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-
-  .file-icon {
-    width: 32px; height: 32px;
-    background: rgba(0,232,122,0.08);
-    border: 1px solid rgba(0,232,122,0.2);
-    border-radius: 2px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-  }
-
-  .file-icon svg { width: 14px; height: 14px; stroke: var(--verde); }
-
-  .file-info { flex: 1; min-width: 0; }
-
-  .file-name {
-    font-size: 13px;
-    font-weight: 500;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .file-size {
-    font-family: 'DM Mono', monospace;
-    font-size: 10px;
-    color: var(--gris-texto);
-    margin-top: 2px;
-  }
-
-  .file-status {
-    width: 8px; height: 8px;
-    border-radius: 50%;
-    background: var(--gris-borde);
-    flex-shrink: 0;
-  }
-
-  .file-status.processing {
-    background: var(--amarillo);
-    animation: blink 0.8s infinite;
-  }
-
-  .file-status.done { background: var(--verde); }
-  .file-status.error { background: #FF4444; }
-
-  @keyframes blink {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.3; }
-  }
-
-  .file-remove {
-    background: none;
-    border: none;
-    cursor: pointer;
-    padding: 4px;
-    color: var(--gris-texto);
-    transition: color 0.2s;
-    line-height: 0;
-  }
-
-  .file-remove:hover { color: #FF4444; }
-  .file-remove svg { width: 14px; height: 14px; stroke: currentColor; }
-
-  /* ── BTN PROCESAR ── */
-  .btn-procesar {
-    margin: 0 28px 28px;
-    width: calc(100% - 56px);
-    padding: 16px;
-    background: var(--verde);
-    color: var(--negro);
-    border: none;
-    border-radius: 2px;
-    font-family: 'Syne', sans-serif;
-    font-weight: 700;
-    font-size: 15px;
-    letter-spacing: 1px;
-    cursor: pointer;
-    transition: all 0.2s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-  }
-
-  .btn-procesar:hover:not(:disabled) {
-    background: #00FF87;
-    transform: translateY(-1px);
-  }
-
-  .btn-procesar:disabled {
-    opacity: 0.3;
-    cursor: not-allowed;
-  }
-
-  .btn-procesar .spinner {
-    width: 16px; height: 16px;
-    border: 2px solid rgba(0,0,0,0.3);
-    border-top-color: var(--negro);
-    border-radius: 50%;
-    animation: spin 0.7s linear infinite;
-    display: none;
-  }
-
-  @keyframes spin { to { transform: rotate(360deg); } }
-
-  /* ── PANEL DERECHO: RESULTADOS ── */
-  .results-empty {
-    padding: 80px 28px;
-    text-align: center;
-  }
-
-  .results-empty .empty-icon {
-    width: 64px; height: 64px;
-    margin: 0 auto 20px;
-    border: 1.5px dashed var(--gris-borde);
-    border-radius: 2px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .results-empty .empty-icon svg { width: 28px; height: 28px; stroke: var(--gris-borde); }
-
-  .results-empty p {
-    font-size: 14px;
-    color: var(--gris-texto);
-    font-weight: 300;
-  }
-
-  /* ── TARJETA RESULTADO ── */
-  .result-card {
-    margin: 28px;
-    margin-bottom: 0;
-    border: 1px solid var(--gris-borde);
-    border-radius: 2px;
-    overflow: hidden;
-    animation: slideIn 0.3s ease;
-  }
-
-  .result-card:last-child { margin-bottom: 28px; }
-
-  .result-card-header {
-    padding: 14px 16px;
-    background: var(--negro);
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    border-bottom: 1px solid var(--gris-borde);
-  }
-
-  .result-card-name {
-    font-family: 'DM Mono', monospace;
-    font-size: 12px;
-    flex: 1;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .result-ok {
-    font-family: 'DM Mono', monospace;
-    font-size: 10px;
-    color: var(--verde);
-    background: rgba(0,232,122,0.08);
-    border: 1px solid rgba(0,232,122,0.2);
-    padding: 3px 8px;
-    border-radius: 20px;
-  }
-
-  .result-error {
-    font-family: 'DM Mono', monospace;
-    font-size: 10px;
-    color: #FF4444;
-    background: rgba(255,68,68,0.08);
-    border: 1px solid rgba(255,68,68,0.2);
-    padding: 3px 8px;
-    border-radius: 20px;
-  }
-
-  .result-fields {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-  }
-
-  .result-field {
-    padding: 14px 16px;
-    border-bottom: 1px solid var(--gris-borde);
-    border-right: 1px solid var(--gris-borde);
-  }
-
-  .result-field:nth-child(even) { border-right: none; }
-  .result-field:nth-last-child(-n+2) { border-bottom: none; }
-
-  .result-field-label {
-    font-family: 'DM Mono', monospace;
-    font-size: 10px;
-    color: var(--gris-texto);
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    margin-bottom: 6px;
-  }
-
-  .result-field-value {
-    font-size: 13px;
-    font-weight: 500;
-    line-height: 1.4;
-  }
-
-  .result-field-value.null-val {
-    color: var(--gris-borde);
-    font-style: italic;
-    font-size: 12px;
-  }
-
-  .result-field-value.kwh {
-    font-family: 'Syne', sans-serif;
-    font-weight: 700;
-    font-size: 20px;
-    color: var(--verde);
-  }
-
-  .result-field-value .unit {
-    font-family: 'DM Mono', monospace;
-    font-size: 11px;
-    color: var(--gris-texto);
-    font-weight: 400;
-  }
-
-  /* ── BTN EXPORTAR ── */
-  .export-bar {
-    position: relative;
-    z-index: 1;
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 0 48px 80px;
-    display: flex;
-    gap: 12px;
-    justify-content: flex-end;
-  }
-
-  .btn-export {
-    padding: 14px 28px;
-    background: transparent;
-    color: var(--blanco);
-    border: 1px solid var(--gris-borde);
-    border-radius: 2px;
-    font-family: 'Syne', sans-serif;
-    font-weight: 600;
-    font-size: 13px;
-    cursor: pointer;
-    transition: all 0.2s;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .btn-export:hover {
-    border-color: var(--verde);
-    color: var(--verde);
-  }
-
-  .btn-export svg { width: 16px; height: 16px; stroke: currentColor; }
-
-  .btn-export.primary {
-    background: var(--negro);
-    border-color: var(--verde);
-    color: var(--verde);
-  }
-
-  .btn-export.primary:hover {
-    background: var(--verde);
-    color: var(--negro);
-  }
-
-  /* ── PROGRESS BAR ── */
-  .progress-bar {
-    height: 2px;
-    background: var(--gris-borde);
-    margin: 0 28px 28px;
-    border-radius: 1px;
-    overflow: hidden;
-    display: none;
-  }
-
-  .progress-fill {
-    height: 100%;
-    background: var(--verde);
-    border-radius: 1px;
-    transition: width 0.4s ease;
-    width: 0%;
-  }
-
-  /* ── FOOTER ── */
-  footer {
-    position: relative;
-    z-index: 1;
-    border-top: 1px solid var(--gris-borde);
-    padding: 28px 48px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-
-  .footer-text {
-    font-family: 'DM Mono', monospace;
-    font-size: 11px;
-    color: var(--gris-borde);
-  }
-
-  .footer-phase {
-    font-family: 'DM Mono', monospace;
-    font-size: 11px;
-    color: var(--verde);
-    opacity: 0.6;
-  }
-
-  /* ── TOAST ── */
-  .toast {
-    position: fixed;
-    bottom: 32px;
-    right: 32px;
-    z-index: 999;
-    padding: 14px 20px;
-    background: var(--gris-medio);
-    border: 1px solid var(--gris-borde);
-    border-radius: 2px;
-    font-size: 13px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    transform: translateY(80px);
-    opacity: 0;
-    transition: all 0.3s ease;
-    max-width: 320px;
-  }
-
-  .toast.show {
-    transform: translateY(0);
-    opacity: 1;
-  }
-
-  .toast.success { border-color: var(--verde); }
-  .toast.error { border-color: #FF4444; }
-
-  .toast-dot {
-    width: 8px; height: 8px;
-    border-radius: 50%;
-    flex-shrink: 0;
-  }
-
-  .toast.success .toast-dot { background: var(--verde); }
-  .toast.error .toast-dot { background: #FF4444; }
-
-  /* ── RESPONSIVE ── */
-  @media (max-width: 900px) {
-    nav { padding: 16px 24px; }
-    .hero { padding: 120px 24px 60px; }
-    .stats-bar { flex-wrap: wrap; }
-    .stat { min-width: 50%; }
-    .main { grid-template-columns: 1fr; padding: 0 24px 80px; }
-    .export-bar { padding: 0 24px 60px; }
-    footer { padding: 20px 24px; flex-direction: column; gap: 8px; text-align: center; }
-  }
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --sol: #F5A623; --sol-claro: #FFF3D6; --sol-hover: #E8940A;
+  --verde: #1A4D2E; --verde-medio: #2D7A4F; --verde-claro: #E8F5EE;
+  --crema: #FAFAF7; --crema-oscuro: #F0EFE8;
+  --negro: #141410; --gris: #6B6B60; --gris-claro: #E8E8E0; --blanco: #FFFFFF;
+  --sombra: 0 1px 3px rgba(20,20,16,0.08), 0 4px 16px rgba(20,20,16,0.06);
+  --sombra-lg: 0 8px 32px rgba(20,20,16,0.12);
+}
+html { scroll-behavior: smooth; }
+body { background: var(--crema); color: var(--negro); font-family: 'Plus Jakarta Sans', sans-serif; min-height: 100vh; }
+
+/* NAV */
+nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  background: rgba(250,250,247,0.95); backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--gris-claro);
+  padding: 0 48px; height: 68px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.nav-logo { display: flex; align-items: center; gap: 10px; }
+.logo-icon { width: 32px; height: 32px; background: var(--verde); border-radius: 8px; display: flex; align-items: center; justify-content: center; }
+.logo-icon svg { width: 18px; height: 18px; }
+.logo-text { font-family: 'Fraunces', serif; font-weight: 700; font-size: 20px; letter-spacing: -0.5px; }
+.logo-text span { color: var(--sol-hover); }
+.nav-tabs { display: flex; gap: 4px; background: var(--crema-oscuro); padding: 4px; border-radius: 10px; }
+.nav-tab {
+  padding: 7px 20px; border-radius: 7px; border: none; background: none;
+  font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; font-weight: 600;
+  cursor: pointer; transition: all 0.2s; color: var(--gris); display: flex; align-items: center; gap: 6px;
+}
+.nav-tab svg { width: 14px; height: 14px; stroke: currentColor; }
+.nav-tab.active { background: var(--blanco); color: var(--negro); box-shadow: var(--sombra); }
+.nav-tab .badge-count {
+  background: var(--verde); color: white; font-size: 10px; font-weight: 700;
+  padding: 1px 6px; border-radius: 10px; min-width: 18px; text-align: center;
+}
+.nav-right { display: flex; align-items: center; gap: 12px; }
+.nav-status { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--gris); }
+.status-dot { width: 7px; height: 7px; border-radius: 50%; background: #22C55E; animation: pulse 2.5s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+/* PAGES */
+.page { display: none; padding-top: 68px; }
+.page.active { display: block; }
+
+/* ── EXTRACTOR PAGE ── */
+.app-section { max-width: 1280px; margin: 0 auto; padding: 40px 48px 80px; }
+.app-grid { display: grid; grid-template-columns: 400px 1fr; gap: 24px; align-items: start; }
+
+.panel { background: var(--blanco); border-radius: 16px; border: 1px solid var(--gris-claro); box-shadow: var(--sombra); overflow: hidden; }
+.panel-header { padding: 18px 24px; border-bottom: 1px solid var(--gris-claro); display: flex; align-items: center; justify-content: space-between; }
+.panel-title { font-weight: 600; font-size: 14px; display: flex; align-items: center; gap: 8px; }
+.panel-title svg { width: 16px; height: 16px; stroke: var(--verde-medio); }
+.panel-count { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--gris); background: var(--crema); padding: 3px 10px; border-radius: 20px; border: 1px solid var(--gris-claro); }
+
+.drop-zone { margin: 20px; border: 1.5px dashed var(--gris-claro); border-radius: 12px; padding: 36px 24px; text-align: center; cursor: pointer; transition: all 0.25s; }
+.drop-zone:hover, .drop-zone.drag-over { border-color: var(--sol); background: var(--sol-claro); }
+.drop-icon-wrap { width: 48px; height: 48px; background: var(--verde-claro); border-radius: 12px; margin: 0 auto 14px; display: flex; align-items: center; justify-content: center; transition: background 0.2s; }
+.drop-zone:hover .drop-icon-wrap { background: rgba(245,166,35,0.15); }
+.drop-icon-wrap svg { width: 22px; height: 22px; stroke: var(--verde-medio); transition: stroke 0.2s; }
+.drop-zone:hover .drop-icon-wrap svg { stroke: var(--sol-hover); }
+.drop-title { font-weight: 600; font-size: 14px; margin-bottom: 4px; }
+.drop-sub { font-size: 12px; color: var(--gris); margin-bottom: 12px; }
+.drop-badges { display: flex; gap: 6px; justify-content: center; }
+.badge { font-family: 'JetBrains Mono', monospace; font-size: 10px; padding: 3px 8px; border-radius: 6px; background: var(--blanco); border: 1px solid var(--gris-claro); color: var(--gris); }
+#file-input { display: none; }
+
+.files-list { padding: 0 20px; display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+.file-item { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: var(--crema); border: 1px solid var(--gris-claro); border-radius: 10px; animation: fadeSlide 0.2s ease; }
+@keyframes fadeSlide { from{opacity:0;transform:translateY(-6px)} to{opacity:1;transform:translateY(0)} }
+.file-thumb { width: 34px; height: 34px; background: var(--verde-claro); border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.file-thumb svg { width: 15px; height: 15px; stroke: var(--verde-medio); }
+.file-info { flex: 1; min-width: 0; }
+.file-name { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.file-meta { font-size: 11px; color: var(--gris); margin-top: 1px; }
+.file-indicator { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.file-indicator.pending { background: var(--gris-claro); }
+.file-indicator.processing { background: var(--sol); animation: blink 0.7s infinite; }
+.file-indicator.done { background: #22C55E; }
+.file-indicator.error { background: #EF4444; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+.file-del { background: none; border: none; cursor: pointer; color: var(--gris); padding: 4px; line-height: 0; border-radius: 6px; transition: all 0.15s; }
+.file-del:hover { background: #FEE2E2; color: #EF4444; }
+.file-del svg { width: 13px; height: 13px; stroke: currentColor; }
+
+.progress-wrap { margin: 0 20px 16px; display: none; }
+.progress-header { display: flex; justify-content: space-between; font-size: 12px; color: var(--gris); margin-bottom: 8px; }
+.progress-track { height: 4px; background: var(--gris-claro); border-radius: 2px; overflow: hidden; }
+.progress-fill { height: 100%; background: linear-gradient(90deg, var(--verde-medio), var(--sol)); border-radius: 2px; transition: width 0.4s ease; width: 0%; }
+
+.btn-main { margin: 0 20px 20px; width: calc(100% - 40px); padding: 14px 24px; background: var(--verde); color: white; border: none; border-radius: 12px; font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 14px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 10px; box-shadow: 0 4px 12px rgba(26,77,46,0.3); }
+.btn-main:hover:not(:disabled) { background: var(--verde-medio); transform: translateY(-1px); }
+.btn-main:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
+.spinner { width: 15px; height: 15px; border: 2px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: spin 0.7s linear infinite; display: none; }
+@keyframes spin { to{transform:rotate(360deg)} }
+.btn-main svg { width: 16px; height: 16px; stroke: currentColor; }
+
+.results-panel { background: var(--blanco); border-radius: 16px; border: 1px solid var(--gris-claro); box-shadow: var(--sombra); min-height: 400px; overflow: hidden; }
+.results-empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 400px; padding: 60px 40px; text-align: center; }
+.empty-illo { width: 72px; height: 72px; background: var(--verde-claro); border-radius: 18px; display: flex; align-items: center; justify-content: center; margin-bottom: 18px; }
+.empty-illo svg { width: 32px; height: 32px; stroke: var(--verde-medio); }
+.empty-title { font-weight: 600; font-size: 15px; margin-bottom: 6px; }
+.empty-sub { font-size: 13px; color: var(--gris); line-height: 1.6; }
+
+#results-container { padding: 20px; display: flex; flex-direction: column; gap: 14px; }
+.result-card { border: 1px solid var(--gris-claro); border-radius: 12px; overflow: hidden; animation: fadeSlide 0.3s ease; }
+.result-card-head { padding: 12px 16px; background: var(--crema); border-bottom: 1px solid var(--gris-claro); display: flex; align-items: center; gap: 10px; }
+.result-file-icon { width: 30px; height: 30px; background: var(--verde-claro); border-radius: 7px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.result-file-icon svg { width: 14px; height: 14px; stroke: var(--verde-medio); }
+.result-filename { flex: 1; font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.result-badge-ok { font-size: 11px; font-weight: 600; color: #15803D; background: #DCFCE7; padding: 3px 10px; border-radius: 20px; }
+.result-badge-cache { font-size: 11px; font-weight: 600; color: #1D4ED8; background: #DBEAFE; padding: 3px 10px; border-radius: 20px; }
+.result-badge-err { font-size: 11px; font-weight: 600; color: #DC2626; background: #FEE2E2; padding: 3px 10px; border-radius: 20px; }
+.result-body { padding: 14px 16px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+.rf-label { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--gris); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 3px; }
+.rf-value { font-size: 13px; font-weight: 600; color: var(--negro); line-height: 1.3; }
+.rf-value.big { font-family: 'Fraunces', serif; font-size: 20px; font-weight: 700; color: var(--verde-medio); }
+.rf-value.big .unit { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 11px; color: var(--gris); font-weight: 500; }
+.rf-value.null { color: var(--gris-claro); font-weight: 400; font-style: italic; font-size: 12px; }
+.result-addr { grid-column: 1/-1; padding-top: 10px; border-top: 1px solid var(--gris-claro); }
+
+.export-row { max-width: 1280px; margin: 0 auto; padding: 0 48px 60px; display: none; justify-content: space-between; align-items: center; }
+.export-info { font-size: 13px; color: var(--gris); }
+.export-info strong { color: var(--negro); }
+.export-btns { display: flex; gap: 10px; }
+.btn-export { padding: 10px 20px; border-radius: 10px; font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 600; font-size: 13px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 7px; border: 1.5px solid var(--gris-claro); background: var(--blanco); color: var(--negro); }
+.btn-export:hover { border-color: var(--negro); }
+.btn-export svg { width: 14px; height: 14px; stroke: currentColor; }
+.btn-export.primary { background: var(--sol); border-color: var(--sol); color: var(--negro); box-shadow: 0 4px 12px rgba(245,166,35,0.3); }
+.btn-export.primary:hover { background: var(--sol-hover); border-color: var(--sol-hover); }
+
+/* ── HISTORIAL PAGE ── */
+.hist-section { max-width: 1280px; margin: 0 auto; padding: 40px 48px 80px; }
+.hist-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 28px; }
+.hist-title { font-family: 'Fraunces', serif; font-weight: 700; font-size: 28px; letter-spacing: -0.5px; }
+.hist-title span { color: var(--verde-medio); }
+.hist-actions { display: flex; gap: 10px; align-items: center; }
+
+.search-box { display: flex; align-items: center; gap: 8px; background: var(--blanco); border: 1.5px solid var(--gris-claro); border-radius: 10px; padding: 9px 14px; transition: border-color 0.2s; }
+.search-box:focus-within { border-color: var(--verde-medio); }
+.search-box svg { width: 15px; height: 15px; stroke: var(--gris); flex-shrink: 0; }
+.search-box input { border: none; outline: none; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; color: var(--negro); background: none; width: 220px; }
+.search-box input::placeholder { color: var(--gris); }
+
+/* STATS CARDS */
+.stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 28px; }
+.stat-card { background: var(--blanco); border: 1px solid var(--gris-claro); border-radius: 14px; padding: 20px 22px; box-shadow: var(--sombra); }
+.stat-card-label { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--gris); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 8px; }
+.stat-card-value { font-family: 'Fraunces', serif; font-weight: 700; font-size: 28px; color: var(--negro); line-height: 1; }
+.stat-card-value.green { color: var(--verde-medio); }
+.stat-card-value.amber { color: var(--sol-hover); }
+.stat-card-sub { font-size: 12px; color: var(--gris); margin-top: 4px; }
+
+/* TABLA HISTORIAL */
+.hist-table-wrap { background: var(--blanco); border: 1px solid var(--gris-claro); border-radius: 16px; box-shadow: var(--sombra); overflow: hidden; }
+.hist-table-header { padding: 16px 24px; border-bottom: 1px solid var(--gris-claro); display: flex; align-items: center; justify-content: space-between; }
+.hist-table { width: 100%; border-collapse: collapse; }
+.hist-table th { padding: 12px 20px; text-align: left; font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--gris); text-transform: uppercase; letter-spacing: 1.5px; background: var(--crema); border-bottom: 1px solid var(--gris-claro); font-weight: 500; }
+.hist-table td { padding: 14px 20px; font-size: 13px; border-bottom: 1px solid rgba(232,232,224,0.5); vertical-align: middle; }
+.hist-table tr:last-child td { border-bottom: none; }
+.hist-table tr:hover td { background: var(--crema); }
+.td-archivo { font-weight: 600; display: flex; align-items: center; gap: 8px; }
+.td-archivo .icon { width: 28px; height: 28px; background: var(--verde-claro); border-radius: 7px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.td-archivo .icon svg { width: 13px; height: 13px; stroke: var(--verde-medio); }
+.td-kwh { font-family: 'Fraunces', serif; font-size: 16px; font-weight: 700; color: var(--verde-medio); }
+.td-null { color: var(--gris-claro); font-style: italic; font-size: 12px; }
+.td-fecha { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--gris); }
+.td-estrato { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; background: var(--sol-claro); color: var(--sol-hover); font-weight: 700; font-size: 13px; border-radius: 8px; }
+.btn-del { background: none; border: none; cursor: pointer; padding: 6px; border-radius: 7px; color: var(--gris); transition: all 0.15s; line-height: 0; }
+.btn-del:hover { background: #FEE2E2; color: #EF4444; }
+.btn-del svg { width: 14px; height: 14px; stroke: currentColor; }
+
+.hist-empty { padding: 80px 40px; text-align: center; }
+.hist-empty svg { width: 40px; height: 40px; stroke: var(--gris-claro); margin: 0 auto 14px; display: block; }
+.hist-empty p { font-size: 14px; color: var(--gris); }
+
+.hist-loading { padding: 60px; text-align: center; color: var(--gris); font-size: 13px; }
+
+/* FOOTER */
+footer { background: var(--verde); color: white; padding: 40px 48px; }
+.footer-inner { max-width: 1280px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; }
+.footer-brand { font-family: 'Fraunces', serif; font-size: 18px; font-weight: 700; }
+.footer-brand span { color: var(--sol); }
+.footer-right { font-family: 'JetBrains Mono', monospace; font-size: 11px; opacity: 0.5; }
+
+/* TOAST */
+.toast { position: fixed; bottom: 28px; right: 28px; z-index: 999; background: var(--blanco); border: 1px solid var(--gris-claro); border-radius: 12px; padding: 13px 18px; box-shadow: var(--sombra-lg); display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 500; transform: translateY(80px); opacity: 0; transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1); max-width: 280px; }
+.toast.show { transform: translateY(0); opacity: 1; }
+.toast-icon { width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.toast.success .toast-icon { background: #DCFCE7; }
+.toast.success .toast-icon svg { stroke: #16A34A; }
+.toast.info .toast-icon { background: #DBEAFE; }
+.toast.info .toast-icon svg { stroke: #1D4ED8; }
+
+@media (max-width: 1024px) {
+  nav { padding: 0 20px; }
+  .app-section, .hist-section { padding: 24px 20px 60px; }
+  .app-grid { grid-template-columns: 1fr; }
+  .stats-row { grid-template-columns: 1fr 1fr; }
+  .export-row { padding: 0 20px 40px; flex-direction: column; align-items: flex-start; gap: 12px; }
+  footer { padding: 32px 20px; }
+  .footer-inner { flex-direction: column; gap: 12px; text-align: center; }
+}
 </style>
 </head>
 <body>
 
-<!-- NAV -->
 <nav>
   <div class="nav-logo">
-    <div class="dot"></div>
-    EPM Extractor
-  </div>
-  <span class="nav-badge">FASE 1 · v1.0</span>
-</nav>
-
-<!-- HERO -->
-<section class="hero">
-  <div class="hero-tag">Visión por Computador · OCR · Extracción automática</div>
-  <h1>Extrae datos<br>de <span class="highlight">facturas</span><br>al instante</h1>
-  <p class="hero-desc">
-    Sube tus facturas de energía — EPM, CELSIA, QI Energy —
-    y obtén automáticamente los 5 campos clave para tu proceso
-    de formulación de proyectos.
-  </p>
-</section>
-
-<!-- STATS -->
-<div class="stats-bar">
-  <div class="stat">
-    <div class="stat-num">5</div>
-    <div class="stat-label">campos extraídos</div>
-  </div>
-  <div class="stat">
-    <div class="stat-num">3+</div>
-    <div class="stat-label">comercializadores</div>
-  </div>
-  <div class="stat">
-    <div class="stat-num">PDF</div>
-    <div class="stat-label">y fotos JPG/PNG</div>
-  </div>
-  <div class="stat">
-    <div class="stat-num">XLS</div>
-    <div class="stat-label">exportación directa</div>
-  </div>
-</div>
-
-<!-- MAIN -->
-<div class="main">
-
-  <!-- PANEL IZQUIERDO -->
-  <div class="panel">
-    <div class="panel-header">
-      <span class="panel-title">Cargar facturas</span>
-      <span class="panel-num" id="file-count">0 archivos</span>
+    <div class="logo-icon">
+      <svg fill="none" viewBox="0 0 24 24" stroke="white" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707M17.657 17.657l-.707-.707M6.343 6.343l-.707-.707"/>
+        <circle cx="12" cy="12" r="4"/>
+      </svg>
     </div>
+    <span class="logo-text">Solar<span>Data</span></span>
+  </div>
 
-    <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()">
-      <div class="drop-icon">
-        <svg fill="none" viewBox="0 0 24 24" stroke-width="1.5">
-          <path stroke-linecap="round" stroke-linejoin="round"
-            d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/>
-        </svg>
-      </div>
-      <div class="drop-title">Arrastra tus facturas aquí</div>
-      <div class="drop-sub">o haz clic para seleccionar archivos</div>
-      <div class="drop-types">
-        <span class="type-badge">PDF</span>
-        <span class="type-badge">JPG</span>
-        <span class="type-badge">PNG</span>
-      </div>
-    </div>
-
-    <input type="file" id="file-input" multiple accept=".pdf,.jpg,.jpeg,.png">
-
-    <div class="files-list" id="files-list"></div>
-
-    <div class="progress-bar" id="progress-bar">
-      <div class="progress-fill" id="progress-fill"></div>
-    </div>
-
-    <button class="btn-procesar" id="btn-procesar" disabled onclick="procesarFacturas()">
-      <span class="spinner" id="spinner"></span>
-      <span id="btn-text">Procesar facturas</span>
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="cambiarPagina('extractor')" id="tab-extractor">
+      <svg fill="none" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"/></svg>
+      Extractor
+    </button>
+    <button class="nav-tab" onclick="cambiarPagina('historial')" id="tab-historial">
+      <svg fill="none" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      Historial
+      <span class="badge-count" id="badge-count">0</span>
     </button>
   </div>
 
-  <!-- PANEL DERECHO -->
-  <div class="panel">
-    <div class="panel-header">
-      <span class="panel-title">Resultados</span>
-      <span class="panel-num" id="results-count">—</span>
+  <div class="nav-right">
+    <div class="nav-status">
+      <div class="status-dot"></div>
+      <span>Servidor activo</span>
     </div>
+  </div>
+</nav>
 
-    <div class="results-empty" id="results-empty">
-      <div class="empty-icon">
-        <svg fill="none" viewBox="0 0 24 24" stroke-width="1">
-          <path stroke-linecap="round" stroke-linejoin="round"
-            d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/>
-        </svg>
+<!-- ── PÁGINA EXTRACTOR ── -->
+<div class="page active" id="page-extractor">
+  <div class="app-section">
+    <div class="app-grid">
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">
+            <svg fill="none" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/></svg>
+            Cargar facturas
+          </div>
+          <span class="panel-count" id="file-count">0 archivos</span>
+        </div>
+
+        <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()">
+          <div class="drop-icon-wrap">
+            <svg fill="none" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m6.75 12H9m1.5-12H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/></svg>
+          </div>
+          <p class="drop-title">Arrastra tus facturas aquí</p>
+          <p class="drop-sub">o haz clic para seleccionar</p>
+          <div class="drop-badges">
+            <span class="badge">PDF</span><span class="badge">JPG</span><span class="badge">PNG</span>
+          </div>
+        </div>
+        <input type="file" id="file-input" multiple accept=".pdf,.jpg,.jpeg,.png">
+
+        <div class="files-list" id="files-list"></div>
+
+        <div class="progress-wrap" id="progress-wrap">
+          <div class="progress-header">
+            <span id="progress-label">Procesando...</span>
+            <span id="progress-pct">0%</span>
+          </div>
+          <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
+        </div>
+
+        <button class="btn-main" id="btn-main" disabled onclick="procesarFacturas()">
+          <span class="spinner" id="spinner"></span>
+          <svg id="btn-icon" fill="none" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"/></svg>
+          <span id="btn-text">Extraer datos con IA</span>
+        </button>
       </div>
-      <p>Los datos extraídos aparecerán aquí</p>
-    </div>
 
-    <div id="results-container"></div>
+      <div class="results-panel" id="results-panel">
+        <div class="panel-header">
+          <div class="panel-title">
+            <svg fill="none" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 010 3.75H5.625a1.875 1.875 0 010-3.75z"/></svg>
+            Resultados extraídos
+          </div>
+          <span class="panel-count" id="results-count">—</span>
+        </div>
+        <div class="results-empty-state" id="results-empty">
+          <div class="empty-illo">
+            <svg fill="none" viewBox="0 0 24 24" stroke-width="1.2"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/></svg>
+          </div>
+          <p class="empty-title">Aún no hay resultados</p>
+          <p class="empty-sub">Sube facturas y presiona<br>"Extraer datos con IA".</p>
+        </div>
+        <div id="results-container"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="export-row" id="export-row">
+    <div class="export-info"><strong id="export-count">0 facturas</strong> procesadas · Listas para exportar</div>
+    <div class="export-btns">
+      <button class="btn-export" onclick="exportarJSON()">
+        <svg fill="none" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5"/></svg>JSON
+      </button>
+      <button class="btn-export primary" onclick="exportarCSV()">
+        <svg fill="none" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg>Descargar CSV
+      </button>
+    </div>
   </div>
 </div>
 
-<!-- EXPORT BAR -->
-<div class="export-bar" id="export-bar" style="display:none;">
-  <button class="btn-export" onclick="exportarJSON()">
-    <svg fill="none" viewBox="0 0 24 24" stroke-width="1.5">
-      <path stroke-linecap="round" stroke-linejoin="round"
-        d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5"/>
-    </svg>
-    Exportar JSON
-  </button>
-  <button class="btn-export primary" onclick="exportarCSV()">
-    <svg fill="none" viewBox="0 0 24 24" stroke-width="1.5">
-      <path stroke-linecap="round" stroke-linejoin="round"
-        d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/>
-    </svg>
-    Descargar Excel (CSV)
-  </button>
+<!-- ── PÁGINA HISTORIAL ── -->
+<div class="page" id="page-historial">
+  <div class="hist-section">
+    <div class="hist-header">
+      <h2 class="hist-title">Historial de <span>extracciones</span></h2>
+      <div class="hist-actions">
+        <div class="search-box">
+          <svg fill="none" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/></svg>
+          <input type="text" id="search-input" placeholder="Buscar por archivo, dirección..." oninput="filtrarHistorial()">
+        </div>
+        <button class="btn-export primary" onclick="exportarHistorialCSV()">
+          <svg fill="none" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg>
+          Exportar todo
+        </button>
+      </div>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-card-label">Total facturas</div>
+        <div class="stat-card-value" id="stat-total">—</div>
+        <div class="stat-card-sub">procesadas</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-label">Consumo promedio</div>
+        <div class="stat-card-value green" id="stat-consumo">—</div>
+        <div class="stat-card-sub">kWh promedio general</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-label">Estrato más frecuente</div>
+        <div class="stat-card-value amber" id="stat-estrato">—</div>
+        <div class="stat-card-sub">en el historial</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-label">Última extracción</div>
+        <div class="stat-card-value" id="stat-ultima" style="font-size:16px;">—</div>
+        <div class="stat-card-sub">fecha</div>
+      </div>
+    </div>
+
+    <div class="hist-table-wrap">
+      <div class="hist-table-header">
+        <div class="panel-title">
+          <svg fill="none" viewBox="0 0 24 24" stroke-width="2" width="16" height="16" style="stroke:var(--verde-medio)"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 010 3.75H5.625a1.875 1.875 0 010-3.75z"/></svg>
+          Todas las facturas
+        </div>
+        <span class="panel-count" id="hist-count">Cargando...</span>
+      </div>
+      <div id="hist-body">
+        <div class="hist-loading">Cargando historial...</div>
+      </div>
+    </div>
+  </div>
 </div>
 
-<!-- FOOTER -->
 <footer>
-  <span class="footer-text">© 2026 · Extractor Facturas Energía Colombia</span>
-  <span class="footer-phase">FASE 1 COMPLETA · Siguiente: Interfaz web conectada al backend</span>
+  <div class="footer-inner">
+    <div class="footer-brand">Solar<span>Data</span> · Extractor v1.0</div>
+    <div class="footer-right">FASE 3 COMPLETA · Base de datos activa</div>
+  </div>
 </footer>
 
-<!-- TOAST -->
 <div class="toast" id="toast">
-  <div class="toast-dot"></div>
+  <div class="toast-icon">
+    <svg id="toast-svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" width="12" height="12">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/>
+    </svg>
+  </div>
   <span id="toast-msg"></span>
 </div>
 
 <script>
-  // ── Estado de la app ──
-  const state = {
-    files: [],
-    results: [],
-    processing: false
-  };
+const state = { files: [], results: [], processing: false };
+let historialData = [];
 
-  // ── Drag & Drop ──
-  const dropZone = document.getElementById('drop-zone');
+// ── NAVEGACIÓN ──
+function cambiarPagina(pagina) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-' + pagina).classList.add('active');
+  document.getElementById('tab-' + pagina).classList.add('active');
+  if (pagina === 'historial') cargarHistorial();
+}
 
-  dropZone.addEventListener('dragover', e => {
-    e.preventDefault();
-    dropZone.classList.add('drag-over');
-  });
+// ── DRAG & DROP ──
+const dropZone = document.getElementById('drop-zone');
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop', e => { e.preventDefault(); dropZone.classList.remove('drag-over'); agregarArchivos(Array.from(e.dataTransfer.files).filter(validFile)); });
+document.getElementById('file-input').addEventListener('change', e => { agregarArchivos(Array.from(e.target.files).filter(validFile)); e.target.value = ''; });
 
-  dropZone.addEventListener('dragleave', () => {
-    dropZone.classList.remove('drag-over');
-  });
+function validFile(f) { return ['pdf','jpg','jpeg','png'].includes(f.name.split('.').pop().toLowerCase()); }
 
-  dropZone.addEventListener('drop', e => {
-    e.preventDefault();
-    dropZone.classList.remove('drag-over');
-    const files = Array.from(e.dataTransfer.files).filter(validarArchivo);
-    agregarArchivos(files);
-  });
+function agregarArchivos(nuevos) {
+  nuevos.forEach(f => { if (!state.files.find(x => x.file.name === f.name)) state.files.push({ file: f, status: 'pending' }); });
+  renderFiles();
+  document.getElementById('btn-main').disabled = state.files.length === 0;
+}
 
-  document.getElementById('file-input').addEventListener('change', e => {
-    const files = Array.from(e.target.files).filter(validarArchivo);
-    agregarArchivos(files);
-    e.target.value = '';
-  });
+function quitarArchivo(nombre) {
+  state.files = state.files.filter(f => f.file.name !== nombre);
+  renderFiles();
+  document.getElementById('btn-main').disabled = state.files.length === 0;
+}
 
-  function validarArchivo(f) {
-    const ext = f.name.split('.').pop().toLowerCase();
-    return ['pdf','jpg','jpeg','png'].includes(ext);
-  }
-
-  function agregarArchivos(nuevos) {
-    nuevos.forEach(f => {
-      if (!state.files.find(x => x.file.name === f.name)) {
-        state.files.push({ file: f, status: 'pending', id: Date.now() + Math.random() });
-      }
-    });
-    renderFiles();
-    document.getElementById('btn-procesar').disabled = state.files.length === 0;
-  }
-
-  function quitarArchivo(nombre) {
-    state.files = state.files.filter(f => f.file.name !== nombre);
-    renderFiles();
-    document.getElementById('btn-procesar').disabled = state.files.length === 0;
-  }
-
-  function renderFiles() {
-    const lista = document.getElementById('files-list');
-    const count = document.getElementById('file-count');
-    count.textContent = `${state.files.length} archivo${state.files.length !== 1 ? 's' : ''}`;
-
-    lista.innerHTML = state.files.map(item => `
-      <div class="file-item">
-        <div class="file-icon">
-          <svg fill="none" viewBox="0 0 24 24" stroke-width="1.5">
-            <path stroke-linecap="round" stroke-linejoin="round"
-              d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/>
-          </svg>
-        </div>
-        <div class="file-info">
-          <div class="file-name">${item.file.name}</div>
-          <div class="file-size">${formatSize(item.file.size)}</div>
-        </div>
-        <div class="file-status ${item.status === 'processing' ? 'processing' : item.status === 'done' ? 'done' : item.status === 'error' ? 'error' : ''}"></div>
-        ${item.status === 'pending' ? `
-          <button class="file-remove" onclick="quitarArchivo('${item.file.name}')">
-            <svg fill="none" viewBox="0 0 24 24" stroke-width="1.5">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
-            </svg>
-          </button>` : ''}
+function renderFiles() {
+  document.getElementById('file-count').textContent = `${state.files.length} archivo${state.files.length !== 1 ? 's' : ''}`;
+  document.getElementById('files-list').innerHTML = state.files.map(item => `
+    <div class="file-item">
+      <div class="file-thumb"><svg fill="none" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/></svg></div>
+      <div class="file-info">
+        <div class="file-name">${item.file.name}</div>
+        <div class="file-meta">${fmtSize(item.file.size)} · ${item.file.name.split('.').pop().toUpperCase()}</div>
       </div>
-    `).join('');
-  }
+      <div class="file-indicator ${item.status}"></div>
+      ${item.status === 'pending' ? `<button class="file-del" onclick="quitarArchivo('${item.file.name}')"><svg fill="none" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg></button>` : ''}
+    </div>
+  `).join('');
+}
 
-  function formatSize(bytes) {
-    if (bytes < 1024) return bytes + ' B';
-    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
-  }
+function fmtSize(b) { if(b<1024)return b+' B'; if(b<1048576)return(b/1024).toFixed(1)+' KB'; return(b/1048576).toFixed(1)+' MB'; }
 
-  // ── Simulación de procesamiento ──
-  // (En producción esto llamará al backend FastAPI)
-  async function procesarFacturas() {
-    if (state.processing || state.files.length === 0) return;
-    state.processing = true;
+// ── PROCESAR ──
+async function procesarFacturas() {
+  if (state.processing || !state.files.length) return;
+  state.processing = true;
+  const btn = document.getElementById('btn-main');
+  const spinner = document.getElementById('spinner');
+  const btnIcon = document.getElementById('btn-icon');
+  const btnText = document.getElementById('btn-text');
+  const progressWrap = document.getElementById('progress-wrap');
+  const progressFill = document.getElementById('progress-fill');
+  const progressLabel = document.getElementById('progress-label');
+  const progressPct = document.getElementById('progress-pct');
 
-    const btn = document.getElementById('btn-procesar');
-    const spinner = document.getElementById('spinner');
-    const btnText = document.getElementById('btn-text');
-    const progressBar = document.getElementById('progress-bar');
-    const progressFill = document.getElementById('progress-fill');
+  btn.disabled = true; spinner.style.display = 'block'; btnIcon.style.display = 'none';
+  btnText.textContent = 'Procesando...'; progressWrap.style.display = 'block';
+  document.getElementById('results-empty').style.display = 'none';
+  document.getElementById('results-container').innerHTML = '';
+  state.results = [];
 
-    btn.disabled = true;
-    spinner.style.display = 'block';
-    btnText.textContent = 'Procesando...';
-    progressBar.style.display = 'block';
+  for (let i = 0; i < state.files.length; i++) {
+    const item = state.files[i];
+    item.status = 'processing'; renderFiles();
+    const pct = Math.round((i / state.files.length) * 100);
+    progressFill.style.width = pct + '%'; progressPct.textContent = pct + '%';
+    progressLabel.textContent = `Procesando ${item.file.name}...`;
 
-    document.getElementById('results-empty').style.display = 'none';
-    document.getElementById('results-container').innerHTML = '';
-    state.results = [];
-
-    for (let i = 0; i < state.files.length; i++) {
-      const item = state.files[i];
-      item.status = 'processing';
-      renderFiles();
-
-      const pct = Math.round((i / state.files.length) * 100);
-      progressFill.style.width = pct + '%';
-
-      // ── Aquí se conectará el backend FastAPI ──
-      // const formData = new FormData();
-      // formData.append('file', item.file);
-      // const res = await fetch('http://localhost:8000/extraer', { method: 'POST', body: formData });
-      // const data = await res.json();
-
-      // Por ahora simulamos con datos de ejemplo
-      await new Promise(r => setTimeout(r, 1200));
-      const data = simularExtraccion(item.file.name);
-
-      item.status = data.error ? 'error' : 'done';
-      state.results.push({ archivo: item.file.name, ...data });
-      renderFiles();
-      renderResultado({ archivo: item.file.name, ...data });
-
-      document.getElementById('results-count').textContent =
-        `${i + 1}/${state.files.length} procesadas`;
+    let data;
+    try {
+      const formData = new FormData();
+      formData.append('file', item.file);
+      const res = await fetch('http://127.0.0.1:8000/extraer', { method: 'POST', body: formData });
+      data = await res.json();
+    } catch(e) {
+      data = { error: 'No se pudo conectar con el servidor.' };
     }
 
-    progressFill.style.width = '100%';
-    setTimeout(() => { progressBar.style.display = 'none'; }, 600);
-
-    btn.disabled = false;
-    spinner.style.display = 'none';
-    btnText.textContent = 'Procesar de nuevo';
-    state.processing = false;
-
-    document.getElementById('export-bar').style.display = 'flex';
-    mostrarToast('¡Extracción completada!', 'success');
+    item.status = data.error ? 'error' : 'done';
+    state.results.push({ archivo: item.file.name, ...data });
+    renderFiles(); renderCard({ archivo: item.file.name, ...data });
+    document.getElementById('results-count').textContent = `${i+1}/${state.files.length}`;
   }
 
-  function simularExtraccion(nombre) {
-    // Datos de ejemplo para la demo visual
-    const demos = {
-      'LaMariana.pdf': {
-        consumo_promedio_kwh: 1026,
-        estrato_socioeconomico: 4,
-        referencia_transformador: '206870',
-        direccion: 'Vereda El Carmin, Rionegro - Antioquia',
-        numero_contrato: '10206177'
-      }
-    };
-    if (demos[nombre]) return demos[nombre];
-    return {
-      consumo_promedio_kwh: Math.floor(Math.random() * 2000) + 200,
-      estrato_socioeconomico: Math.random() > 0.5 ? Math.floor(Math.random() * 4) + 1 : null,
-      referencia_transformador: Math.random() > 0.3 ? String(Math.floor(Math.random() * 900000) + 100000) : null,
-      direccion: 'Dirección del predio, Municipio - Antioquia',
-      numero_contrato: String(Math.floor(Math.random() * 90000000) + 10000000)
-    };
-  }
+  progressFill.style.width = '100%'; progressPct.textContent = '100%';
+  progressLabel.textContent = '¡Completado!';
+  setTimeout(() => { progressWrap.style.display = 'none'; }, 1000);
 
-  function renderResultado(data) {
-    const container = document.getElementById('results-container');
-    const isError = !!data.error;
+  btn.disabled = false; spinner.style.display = 'none'; btnIcon.style.display = 'block';
+  btnText.textContent = 'Procesar de nuevo'; state.processing = false;
 
-    const card = document.createElement('div');
-    card.className = 'result-card';
-    card.innerHTML = `
-      <div class="result-card-header">
-        <span class="result-card-name">${data.archivo}</span>
-        ${isError
-          ? `<span class="result-error">ERROR</span>`
-          : `<span class="result-ok">✓ OK</span>`}
-      </div>
-      ${isError ? `<div style="padding:20px 16px;font-size:13px;color:#FF4444;">${data.error}</div>` : `
-      <div class="result-fields">
-        <div class="result-field">
-          <div class="result-field-label">Consumo promedio</div>
-          <div class="result-field-value kwh">
-            ${data.consumo_promedio_kwh ?? '<span style="color:var(--gris-borde);font-size:13px;font-style:italic;">—</span>'}
-            ${data.consumo_promedio_kwh ? '<span class="unit"> kWh</span>' : ''}
-          </div>
-        </div>
-        <div class="result-field">
-          <div class="result-field-label">Estrato</div>
-          <div class="result-field-value ${!data.estrato_socioeconomico ? 'null-val' : ''}">
-            ${data.estrato_socioeconomico ? `Estrato ${data.estrato_socioeconomico}` : 'No aplica'}
-          </div>
-        </div>
-        <div class="result-field">
-          <div class="result-field-label">Ref. Transformador</div>
-          <div class="result-field-value ${!data.referencia_transformador ? 'null-val' : ''}">
-            ${data.referencia_transformador ?? '—'}
-          </div>
-        </div>
-        <div class="result-field">
-          <div class="result-field-label">N° Contrato</div>
-          <div class="result-field-value">${data.numero_contrato ?? '—'}</div>
-        </div>
-        <div class="result-field" style="grid-column: 1/-1; border-right:none;">
-          <div class="result-field-label">Dirección</div>
-          <div class="result-field-value">${data.direccion ?? '—'}</div>
-        </div>
-      </div>`}
-    `;
-    container.appendChild(card);
-  }
+  document.getElementById('export-row').style.display = 'flex';
+  document.getElementById('export-count').textContent = `${state.results.filter(r=>!r.error).length} factura${state.results.filter(r=>!r.error).length!==1?'s':''}`;
 
-  // ── Exportar ──
-  function exportarCSV() {
-    if (state.results.length === 0) return;
-    const headers = ['Archivo','Consumo promedio (kWh)','Estrato','Ref. Transformador','Dirección','Número de contrato'];
-    const rows = state.results.map(r => [
-      r.archivo,
-      r.consumo_promedio_kwh ?? '',
-      r.estrato_socioeconomico ?? '',
-      r.referencia_transformador ?? '',
-      r.direccion ?? '',
-      r.numero_contrato ?? ''
-    ]);
-    const csv = [headers, ...rows].map(r => r.map(v => `"${v}"`).join(',')).join('\n');
-    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `facturas_epm_${new Date().toISOString().slice(0,10)}.csv`;
-    a.click();
-    mostrarToast('CSV descargado', 'success');
-  }
+  await actualizarBadge();
+  mostrarToast('Extracción completada', 'success');
+}
 
-  function exportarJSON() {
-    if (state.results.length === 0) return;
-    const blob = new Blob([JSON.stringify(state.results, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `facturas_epm_${new Date().toISOString().slice(0,10)}.json`;
-    a.click();
-    mostrarToast('JSON descargado', 'success');
-  }
+function renderCard(data) {
+  const c = document.getElementById('results-container');
+  const isErr = !!data.error;
+  const isCache = data.desde_cache;
+  const div = document.createElement('div');
+  div.className = 'result-card';
+  div.innerHTML = `
+    <div class="result-card-head">
+      <div class="result-file-icon"><svg fill="none" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/></svg></div>
+      <span class="result-filename">${data.archivo}</span>
+      ${isErr ? `<span class="result-badge-err">Error</span>` : isCache ? `<span class="result-badge-cache">⚡ Caché</span>` : `<span class="result-badge-ok">✓ Extraído</span>`}
+    </div>
+    ${isErr ? `<div style="padding:14px 16px;font-size:13px;color:#DC2626;">${data.error}</div>` : `
+    <div class="result-body">
+      <div class="result-field"><div class="rf-label">Consumo promedio</div><div class="rf-value big">${data.consumo_promedio_kwh??'—'}<span class="unit"> kWh</span></div></div>
+      <div class="result-field"><div class="rf-label">Estrato</div><div class="rf-value ${!data.estrato_socioeconomico?'null':''}">${data.estrato_socioeconomico?`Estrato ${data.estrato_socioeconomico}`:'No aplica'}</div></div>
+      <div class="result-field"><div class="rf-label">Transformador</div><div class="rf-value ${!data.referencia_transformador?'null':''}">${data.referencia_transformador??'—'}</div></div>
+      <div class="result-field result-addr"><div class="rf-label">Dirección · Contrato ${data.numero_contrato??'—'}</div><div class="rf-value">${data.direccion??'—'}</div></div>
+    </div>`}
+  `;
+  c.appendChild(div);
+}
 
-  // ── Toast ──
-  function mostrarToast(msg, tipo = 'success') {
-    const toast = document.getElementById('toast');
-    const toastMsg = document.getElementById('toast-msg');
-    toast.className = `toast ${tipo}`;
-    toastMsg.textContent = msg;
-    toast.classList.add('show');
-    setTimeout(() => toast.classList.remove('show'), 3000);
+// ── HISTORIAL ──
+async function cargarHistorial() {
+  document.getElementById('hist-body').innerHTML = '<div class="hist-loading">Cargando historial...</div>';
+  try {
+    const res = await fetch('http://127.0.0.1:8000/historial');
+    historialData = await res.json();
+    renderHistorial(historialData);
+    actualizarStats(historialData);
+    document.getElementById('badge-count').textContent = historialData.length;
+  } catch(e) {
+    document.getElementById('hist-body').innerHTML = '<div class="hist-empty"><p>No se pudo conectar con el servidor.</p></div>';
   }
+}
+
+function renderHistorial(data) {
+  document.getElementById('hist-count').textContent = `${data.length} registro${data.length!==1?'s':''}`;
+  if (!data.length) {
+    document.getElementById('hist-body').innerHTML = `
+      <div class="hist-empty">
+        <svg fill="none" viewBox="0 0 24 24" stroke-width="1"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        <p>Aún no hay facturas procesadas.<br>Ve al Extractor y sube tu primera factura.</p>
+      </div>`;
+    return;
+  }
+  document.getElementById('hist-body').innerHTML = `
+    <table class="hist-table">
+      <thead>
+        <tr>
+          <th>Archivo</th>
+          <th>Consumo</th>
+          <th>Estrato</th>
+          <th>Transformador</th>
+          <th>Contrato</th>
+          <th>Dirección</th>
+          <th>Fecha</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        ${data.map(f => `
+          <tr>
+            <td><div class="td-archivo"><div class="icon"><svg fill="none" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/></svg></div>${f.archivo}</div></td>
+            <td><span class="td-kwh">${f.consumo_promedio_kwh ? f.consumo_promedio_kwh.toLocaleString('es-CO') : '<span class="td-null">—</span>'}</span>${f.consumo_promedio_kwh ? ' kWh' : ''}</td>
+            <td>${f.estrato_socioeconomico ? `<span class="td-estrato">${f.estrato_socioeconomico}</span>` : '<span class="td-null">—</span>'}</td>
+            <td>${f.referencia_transformador ?? '<span class="td-null">—</span>'}</td>
+            <td>${f.numero_contrato ?? '<span class="td-null">—</span>'}</td>
+            <td style="max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${f.direccion ?? '<span class="td-null">—</span>'}</td>
+            <td><span class="td-fecha">${fmtFecha(f.fecha_procesado)}</span></td>
+            <td><button class="btn-del" onclick="borrarRegistro(${f.id})" title="Eliminar"><svg fill="none" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"/></svg></button></td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>`;
+}
+
+function actualizarStats(data) {
+  document.getElementById('stat-total').textContent = data.length;
+  const consumos = data.filter(f => f.consumo_promedio_kwh).map(f => f.consumo_promedio_kwh);
+  document.getElementById('stat-consumo').textContent = consumos.length ? Math.round(consumos.reduce((a,b)=>a+b,0)/consumos.length).toLocaleString('es-CO') : '—';
+  const estratos = data.filter(f => f.estrato_socioeconomico).map(f => f.estrato_socioeconomico);
+  if (estratos.length) {
+    const freq = {}; estratos.forEach(e => freq[e] = (freq[e]||0)+1);
+    document.getElementById('stat-estrato').textContent = 'Estrato ' + Object.entries(freq).sort((a,b)=>b[1]-a[1])[0][0];
+  } else { document.getElementById('stat-estrato').textContent = '—'; }
+  if (data.length) document.getElementById('stat-ultima').textContent = fmtFecha(data[0].fecha_procesado);
+}
+
+function filtrarHistorial() {
+  const q = document.getElementById('search-input').value.toLowerCase();
+  const filtrado = q ? historialData.filter(f =>
+    (f.archivo||'').toLowerCase().includes(q) ||
+    (f.direccion||'').toLowerCase().includes(q) ||
+    (f.numero_contrato||'').toLowerCase().includes(q) ||
+    (f.referencia_transformador||'').toLowerCase().includes(q)
+  ) : historialData;
+  renderHistorial(filtrado);
+}
+
+async function borrarRegistro(id) {
+  if (!confirm('¿Eliminar este registro del historial?')) return;
+  try {
+    await fetch(`http://127.0.0.1:8000/historial/${id}`, { method: 'DELETE' });
+    historialData = historialData.filter(f => f.id !== id);
+    renderHistorial(historialData);
+    actualizarStats(historialData);
+    document.getElementById('badge-count').textContent = historialData.length;
+    mostrarToast('Registro eliminado', 'success');
+  } catch(e) { mostrarToast('Error al eliminar', 'info'); }
+}
+
+async function actualizarBadge() {
+  try {
+    const res = await fetch('http://127.0.0.1:8000/historial');
+    const data = await res.json();
+    document.getElementById('badge-count').textContent = data.length;
+  } catch(e) {}
+}
+
+function fmtFecha(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  return d.toLocaleDateString('es-CO', { day:'2-digit', month:'short', year:'numeric' });
+}
+
+// ── EXPORTAR ──
+function exportarCSV() {
+  if (!state.results.length) return;
+  const h = ['Archivo','Consumo promedio (kWh)','Estrato','Ref. Transformador','Dirección','Número de contrato'];
+  const rows = state.results.map(r => [r.archivo,r.consumo_promedio_kwh??'',r.estrato_socioeconomico??'',r.referencia_transformador??'',r.direccion??'',r.numero_contrato??'']);
+  descargarCSV([h,...rows], `solardata_${hoy()}.csv`);
+}
+
+function exportarHistorialCSV() {
+  if (!historialData.length) { mostrarToast('El historial está vacío', 'info'); return; }
+  const h = ['ID','Archivo','Consumo promedio (kWh)','Estrato','Ref. Transformador','Dirección','Número de contrato','Fecha procesado'];
+  const rows = historialData.map(f => [f.id,f.archivo,f.consumo_promedio_kwh??'',f.estrato_socioeconomico??'',f.referencia_transformador??'',f.direccion??'',f.numero_contrato??'',f.fecha_procesado??'']);
+  descargarCSV([h,...rows], `historial_solardata_${hoy()}.csv`);
+  mostrarToast('Historial exportado', 'success');
+}
+
+function descargarCSV(filas, nombre) {
+  const csv = filas.map(r=>r.map(v=>`"${v}"`).join(',')).join('\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8;'}));
+  a.download = nombre; a.click();
+}
+
+function exportarJSON() {
+  if (!state.results.length) return;
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(state.results,null,2)],{type:'application/json'}));
+  a.download = `solardata_${hoy()}.json`; a.click();
+  mostrarToast('JSON descargado', 'success');
+}
+
+function hoy() { return new Date().toISOString().slice(0,10); }
+
+function mostrarToast(msg, tipo) {
+  const t = document.getElementById('toast');
+  t.className = `toast ${tipo}`;
+  document.getElementById('toast-msg').textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// Carga el badge al inicio
+actualizarBadge();
 </script>
 </body>
 </html>
