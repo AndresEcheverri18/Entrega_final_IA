@@ -13,7 +13,12 @@ Entrega_final_IA-main/
 ├── procesar_PDF.py     ← procesa una carpeta y genera Excel
 ├── server.py           ← servidor FastAPI (conecta el HTML con el extractor)
 ├── index.html          ← interfaz web
-├── .env                ← tu API key (debes crearlo tú)
+├── .env       ← tu API key (debes crearlo tú)
+├──  notebooks/
+├──  01 EDA
+├──  02 OCR
+├──  03 NER
+├──  04 EVALUATION
 └── README.md
 ```
 
